@@ -31,7 +31,7 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class AsyncExecutor extends ThreadPoolExecutor implements ExecutorService {
+public class AsyncExecutor extends ThreadPoolExecutor implements ExecutorService, AutoCloseable {
   final static ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(1);
 
   public AsyncExecutor() {
@@ -49,5 +49,10 @@ public class AsyncExecutor extends ThreadPoolExecutor implements ExecutorService
     }
     new Thread(callback).start();
     return ftask;
+  }
+
+  @Override
+  public void close() throws Exception {
+
   }
 }
