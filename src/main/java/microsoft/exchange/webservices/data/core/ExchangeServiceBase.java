@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
 
+import javax.net.ssl.TrustManager;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
@@ -172,7 +173,13 @@ public abstract class ExchangeServiceBase implements Closeable {
    */
   protected ExchangeServiceBase() {
     setUseDefaultCredentials(true);
-    initializeHttpClient();
+    initializeHttpClient(null);
+    initializeHttpContext();
+  }
+
+  protected ExchangeServiceBase(TrustManager trustManager) {
+    setUseDefaultCredentials(true);
+    initializeHttpClient(trustManager);
     initializeHttpContext();
   }
 
@@ -195,8 +202,8 @@ public abstract class ExchangeServiceBase implements Closeable {
     this.httpHeaders = service.getHttpHeaders();
   }
 
-  private void initializeHttpClient() {
-    Registry<ConnectionSocketFactory> registry = createConnectionSocketFactoryRegistry();
+  private void initializeHttpClient(TrustManager trustManager) {
+    Registry<ConnectionSocketFactory> registry = createConnectionSocketFactoryRegistry(trustManager);
     HttpClientConnectionManager httpConnectionManager = new BasicHttpClientConnectionManager(registry);
     AuthenticationStrategy authStrategy = new CookieProcessingTargetAuthenticationStrategy();
 
@@ -207,7 +214,7 @@ public abstract class ExchangeServiceBase implements Closeable {
   }
 
   private void initializeHttpPoolingClient() {
-    Registry<ConnectionSocketFactory> registry = createConnectionSocketFactoryRegistry();
+    Registry<ConnectionSocketFactory> registry = createConnectionSocketFactoryRegistry(null);
     PoolingHttpClientConnectionManager httpConnectionManager = new PoolingHttpClientConnectionManager(registry);
     httpConnectionManager.setMaxTotal(maximumPoolingConnections);
     httpConnectionManager.setDefaultMaxPerRoute(maximumPoolingConnections);
@@ -240,11 +247,11 @@ public abstract class ExchangeServiceBase implements Closeable {
    *
    * @return registry object
    */
-  protected Registry<ConnectionSocketFactory> createConnectionSocketFactoryRegistry() {
+  protected Registry<ConnectionSocketFactory> createConnectionSocketFactoryRegistry(TrustManager trustManager) {
     try {
       return RegistryBuilder.<ConnectionSocketFactory>create()
         .register(EWSConstants.HTTP_SCHEME, new PlainConnectionSocketFactory())
-        .register(EWSConstants.HTTPS_SCHEME, EwsSSLProtocolSocketFactory.build(null))
+        .register(EWSConstants.HTTPS_SCHEME, EwsSSLProtocolSocketFactory.build(trustManager))
         .build();
     } catch (GeneralSecurityException e) {
       throw new RuntimeException(
